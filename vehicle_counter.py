@@ -124,7 +124,9 @@ def main():
         if elapsed_time > 0:
             fps_value = frame_count / elapsed_time
         fps_text = f"FPS: {fps_value:.2f}"
-        cv2.putText(frame, fps_text, (frame_width - 150, 30), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, (255, 255, 255),
+
+        # Change color from (255, 255, 255) to (0, 0, 0) for black text
+        cv2.putText(frame, fps_text, (frame_width - 150, 30), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, (0, 0, 0),
                     FONT_THICKNESS)
 
         for box, class_name in current_detections:
