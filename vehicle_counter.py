@@ -1,9 +1,9 @@
-import torch
+import time  # Library for measuring time (for FPS)
+from collections import deque
+
 import cv2
 import numpy as np
-import pandas as pd
-from collections import deque
-import time  # Library for measuring time (for FPS)
+import torch
 
 # --- CONFIGURATION ---
 VIDEO_SOURCE = "traffic.mp4"
@@ -11,7 +11,7 @@ OUTPUT_FILENAME = "runs/detect/traffic_fps_benchmark.mp4"
 LINE_THICKNESS = 2
 FONT_SCALE = 0.8
 FONT_THICKNESS = 2
-TARGET_CLASSES = ['car', 'motorcycle', 'bus', 'truck']
+TARGET_CLASSES = ["car", "motorcycle", "bus", "truck"]
 CONFIDENCE_THRESHOLD = 0.4
 TRACKER_DISTANCE_THRESHOLD = 120
 COUNTED_ID_MEMORY = 200
@@ -21,7 +21,7 @@ COUNTED_ID_MEMORY = 200
 def main():
     print("Loading YOLOv5 model ('yolov5s')...")
     # This line loads the 'small' yolov5s model. You can change 'yolov5s' to 'yolov5m' for the optimization experiment.
-    model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
+    model = torch.hub.load("ultralytics/yolov5", "yolov5s", pretrained=True)
     print("Model loaded successfully.")
 
     cap = cv2.VideoCapture(VIDEO_SOURCE)
@@ -37,7 +37,7 @@ def main():
     COUNTING_LINE_Y = frame_height // 2
     print(f"Video Resolution: {frame_width}x{frame_height}. Horizontal counting line placed at y={COUNTING_LINE_Y}")
 
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     out = cv2.VideoWriter(OUTPUT_FILENAME, fourcc, fps, (frame_width, frame_height))
 
     vehicle_counts = {class_name: 0 for class_name in TARGET_CLASSES}
@@ -63,9 +63,9 @@ def main():
 
         current_detections = []
         for index, row in detections.iterrows():
-            if row['name'] in TARGET_CLASSES and row['confidence'] > CONFIDENCE_THRESHOLD:
-                xmin, ymin, xmax, ymax = int(row['xmin']), int(row['ymin']), int(row['xmax']), int(row['ymax'])
-                class_name = row['name']
+            if row["name"] in TARGET_CLASSES and row["confidence"] > CONFIDENCE_THRESHOLD:
+                xmin, ymin, xmax, ymax = int(row["xmin"]), int(row["ymin"]), int(row["xmax"]), int(row["ymax"])
+                class_name = row["name"]
                 current_detections.append(((xmin, ymin, xmax, ymax), class_name))
 
         unmatched_detections = list(range(len(current_detections)))
@@ -73,7 +73,7 @@ def main():
 
         for obj_id, (last_pos, class_name) in tracked_objects.items():
             best_match_idx = -1
-            min_dist = float('inf')
+            min_dist = float("inf")
             for i in unmatched_detections:
                 box, _ = current_detections[i]
                 center_x, center_y = int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2)
@@ -87,8 +87,9 @@ def main():
                 box, new_class_name = current_detections[best_match_idx]
                 center_x, center_y = int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2)
                 updated_tracked_objects[obj_id] = ((center_x, center_y), new_class_name)
-                if (last_pos[1] < COUNTING_LINE_Y <= center_y or last_pos[
-                    1] > COUNTING_LINE_Y >= center_y) and obj_id not in counted_object_ids:
+                if (
+                    last_pos[1] < COUNTING_LINE_Y <= center_y or last_pos[1] > COUNTING_LINE_Y >= center_y
+                ) and obj_id not in counted_object_ids:
                     vehicle_counts[new_class_name] += 1
                     total_vehicle_count += 1
                     counted_object_ids.append(obj_id)
@@ -103,19 +104,22 @@ def main():
         tracked_objects = updated_tracked_objects
 
         # --- VISUALIZATION ---
-        cv2.line(frame, (0, COUNTING_LINE_Y), (frame_width, COUNTING_LINE_Y), (0, 255, 0),
-                 LINE_THICKNESS)  # Green horizontal line
+        cv2.line(
+            frame, (0, COUNTING_LINE_Y), (frame_width, COUNTING_LINE_Y), (0, 255, 0), LINE_THICKNESS
+        )  # Green horizontal line
 
         y_offset = 30
         for class_name, count in vehicle_counts.items():
             count_text = f"{class_name.capitalize()}: {count}"
-            cv2.putText(frame, count_text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, (0, 0, 255),
-                        FONT_THICKNESS)
+            cv2.putText(
+                frame, count_text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, (0, 0, 255), FONT_THICKNESS
+            )
             y_offset += 30
 
         total_text = f"Total Vehicles: {total_vehicle_count}"
-        cv2.putText(frame, total_text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, (0, 255, 255),
-                    FONT_THICKNESS)
+        cv2.putText(
+            frame, total_text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, (0, 255, 255), FONT_THICKNESS
+        )
 
         # Calculate and display FPS
         end_time = time.time()
@@ -126,8 +130,9 @@ def main():
         fps_text = f"FPS: {fps_value:.2f}"
 
         # Change color from (255, 255, 255) to (0, 0, 0) for black text
-        cv2.putText(frame, fps_text, (frame_width - 150, 30), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, (0, 0, 0),
-                    FONT_THICKNESS)
+        cv2.putText(
+            frame, fps_text, (frame_width - 150, 30), cv2.FONT_HERSHEY_SIMPLEX, FONT_SCALE, (0, 0, 0), FONT_THICKNESS
+        )
 
         for box, class_name in current_detections:
             xmin, ymin, xmax, ymax = box
@@ -135,8 +140,8 @@ def main():
             cv2.putText(frame, class_name, (xmin, ymin - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
         out.write(frame)
-        cv2.imshow('Vehicle Counter Benchmark', frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        cv2.imshow("Vehicle Counter Benchmark", frame)
+        if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
     cap.release()
