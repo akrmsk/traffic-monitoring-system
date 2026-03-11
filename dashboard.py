@@ -1,11 +1,11 @@
-import streamlit as st
-import cv2
-import torch
-import numpy as np
 import time
 from collections import deque
-import pandas as pd
 
+import cv2
+import numpy as np
+import pandas as pd
+import streamlit as st
+import torch
 
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="AI Traffic Monitor", layout="wide")
@@ -15,7 +15,7 @@ st.title("🚦 Real-Time Traffic Analytics Dashboard")
 # --- LOAD MODEL ---
 @st.cache_resource
 def load_model():
-    return torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
+    return torch.hub.load("ultralytics/yolov5", "yolov5s", pretrained=True)
 
 
 model = load_model()
@@ -33,7 +33,7 @@ chart_placeholder = d_col.empty()
 
 # --- INITIALIZE LOGIC (Same as your main script) ---
 VIDEO_SOURCE = "traffic.mp4"
-TARGET_CLASSES = ['car', 'motorcycle', 'bus', 'truck']
+TARGET_CLASSES = ["car", "motorcycle", "bus", "truck"]
 CONFIDENCE_THRESHOLD = 0.4
 TRACKER_DISTANCE_THRESHOLD = 120
 
@@ -63,9 +63,9 @@ while cap.isOpened():
 
     current_detections = []
     for index, row in detections.iterrows():
-        if row['name'] in TARGET_CLASSES and row['confidence'] > CONFIDENCE_THRESHOLD:
-            xmin, ymin, xmax, ymax = int(row['xmin']), int(row['ymin']), int(row['xmax']), int(row['ymax'])
-            current_detections.append(((xmin, ymin, xmax, ymax), row['name']))
+        if row["name"] in TARGET_CLASSES and row["confidence"] > CONFIDENCE_THRESHOLD:
+            xmin, ymin, xmax, ymax = int(row["xmin"]), int(row["ymin"]), int(row["xmax"]), int(row["ymax"])
+            current_detections.append(((xmin, ymin, xmax, ymax), row["name"]))
 
     # Tracking Logic
     unmatched_detections = list(range(len(current_detections)))
@@ -73,7 +73,7 @@ while cap.isOpened():
 
     for obj_id, (last_pos, class_name) in tracked_objects.items():
         best_match_idx = -1
-        min_dist = float('inf')
+        min_dist = float("inf")
         for i in unmatched_detections:
             box, _ = current_detections[i]
             center_x, center_y = (box[0] + box[2]) // 2, (box[1] + box[3]) // 2
@@ -88,8 +88,9 @@ while cap.isOpened():
             updated_tracked_objects[obj_id] = ((center_x, center_y), new_class_name)
 
             # Line Crossing Logic
-            if (last_pos[1] < COUNTING_LINE_Y <= center_y or last_pos[
-                1] > COUNTING_LINE_Y >= center_y) and obj_id not in counted_object_ids:
+            if (
+                last_pos[1] < COUNTING_LINE_Y <= center_y or last_pos[1] > COUNTING_LINE_Y >= center_y
+            ) and obj_id not in counted_object_ids:
                 vehicle_counts[new_class_name] += 1
                 counted_object_ids.append(obj_id)
             unmatched_detections.remove(best_match_idx)
@@ -113,14 +114,14 @@ while cap.isOpened():
 
     # --- UPDATE STREAMLIT UI ---
     # Metrics
-    car_metric.metric("Cars", vehicle_counts['car'])
-    motor_metric.metric("Motorcycles", vehicle_counts['motorcycle'])
-    truck_metric.metric("Trucks", vehicle_counts['truck'])
+    car_metric.metric("Cars", vehicle_counts["car"])
+    motor_metric.metric("Motorcycles", vehicle_counts["motorcycle"])
+    truck_metric.metric("Trucks", vehicle_counts["truck"])
     fps_metric.metric("System Speed", f"{fps_value:.2f} FPS")
 
     # Chart
-    df = pd.DataFrame(list(vehicle_counts.items()), columns=['Vehicle', 'Count'])
-    chart_placeholder.bar_chart(df.set_index('Vehicle'))
+    df = pd.DataFrame(list(vehicle_counts.items()), columns=["Vehicle", "Count"])
+    chart_placeholder.bar_chart(df.set_index("Vehicle"))
 
     # Video (Convert BGR to RGB for Streamlit)
     video_placeholder.image(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), channels="RGB", use_container_width=True)
